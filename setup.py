@@ -12,19 +12,20 @@ Environment :: Win32 (MS Windows)
 Intended Audience :: Developers
 License :: OSI Approved :: BSD License
 Operating System :: Microsoft :: MS-DOS
+Operating System :: POSIX :: Linux
 Programming Language :: Python
 Topic :: Software Development :: Libraries
 Topic :: System :: Shells
 Topic :: Terminals
 """
 
-from distutils.core import setup
+from setuptools import setup
 
 doclines = __doc__.split('\n')
 
 setup(
     name='dosbox-screen',
-    version='0.0.3',
+    version='1.0',
     requires=['colorama'],
     install_requires=['colorama'],
     description=doclines[0],
