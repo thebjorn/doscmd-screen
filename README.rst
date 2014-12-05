@@ -3,6 +3,10 @@ doscmd-screen
 ==============================================================================
  -- Screen positioning and colors in the dos shell (and unix too)
 
+.. image:: https://readthedocs.org/projects/doscmd-screen/badge/?version=latest
+   :target: https://readthedocs.org/projects/doscmd-screen/?badge=latest
+   :alt: Documentation Status
+
 Installation
 ------------
 ::

@@ -39,3 +39,4 @@ htmlcov
 *.rst~
 *.bat~
 docs/Makefile~
+pypi-docs.zip
