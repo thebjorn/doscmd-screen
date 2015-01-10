@@ -7,7 +7,7 @@ background, to the extent the dos terminal allows.
 """
 
 classifiers = """\
-Development Status :: 3 - Alpha
+Development Status :: 5 - Production/Stable
 Environment :: Win32 (MS Windows)
 Intended Audience :: Developers
 License :: OSI Approved :: BSD License
@@ -25,7 +25,7 @@ doclines = __doc__.split('\n')
 
 setup(
     name='dosbox-screen',
-    version='1.0.1',
+    version='1.0.2',
     requires=['colorama'],
     install_requires=['colorama'],
     description=doclines[0],
