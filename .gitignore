@@ -40,3 +40,4 @@ htmlcov
 *.bat~
 docs/Makefile~
 pypi-docs.zip
+screen.svg
