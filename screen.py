@@ -132,6 +132,81 @@ class ScreenInfo(object):
         self.maxy = vals[10]
             
 
+class Window(object):
+    """A window that will scroll text written to it.
+    """
+    def __init__(self, screen, x, y, width, height):
+        self.dbg = []
+
+        self.screen = screen
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.xpos, self.ypos = (0, 0)
+        self.content = ['' for _ in range(self.height)]
+
+    def _paint_content(self):
+        self.cls()
+        self.screen.writelinesxy(
+            self.x, self.y, '\n'.join(self.content)
+        )
+
+    def _scroll_up(self, n=1):
+        self.dbg.append("Scroll-UP[%d]" % n)
+        self.content = self.content[1:] + ['']
+        self._paint_content()
+        self.ypos -= 1
+
+    def _write(self, txt):
+        if self.ypos >= self.height:
+            self._scroll_up(self.ypos - self.height + 1)
+
+        self.content[self.ypos] = self.content[self.ypos][:self.xpos] + txt
+
+        self.writexy(self.xpos, self.ypos, txt)
+        self.xpos += len(txt)
+
+    def newline(self):
+        self.xpos = 0
+        self.ypos += 1
+
+    def writexy(self, x, y, txt):
+        self.screen.writexy(
+            self.x + x,
+            self.y + y,
+            txt
+        )
+
+    def write(self, *args):
+        txt = ' '.join(str(arg) for arg in args)
+        if txt == '\n':
+            self.newline()
+        else:
+            while txt:
+                avail_space = self.width - self.xpos
+                try:
+                    nlpos = txt.index('\n')
+                    if nlpos > avail_space:
+                        raise ValueError()
+                    rest_of_line = txt[:nlpos]
+                    txt = txt[nlpos+1:]
+                except ValueError:
+                    rest_of_line = txt[:avail_space]
+                    txt = txt[avail_space:]
+
+                self._write(rest_of_line)
+                if txt:
+                    self.newline()
+
+    def cls(self, color=None):
+        "Clear window, fill it with the given color."
+        args = {}
+        if color:
+            args['background'] = color
+        self.screen.fill(self.x, self.y, self.width, self.height, char=' ', **args)
+
+
 class Screen(object):
     """Screen provides a interface for positioned writing, with color,
        to the screen.
