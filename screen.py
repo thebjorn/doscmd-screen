@@ -146,6 +146,13 @@ class Window(object):
         self.xpos, self.ypos = (0, 0)
         self.content = ['' for _ in range(self.height)]
 
+    def __repr__(self):
+        t = self.__dict__.copy()
+        del t['content']
+        del t['screen']
+        del t['dbg']
+        return "screen.Window(%r)" % t
+
     def _paint_content(self):
         self.cls()
         self.screen.writelinesxy(
@@ -264,6 +271,21 @@ class Screen(object):
         fg = getcolor('Fore', {'foreground', 'color', 'fg'})
         bg = getcolor('Back', {'background', 'on', 'bg'})
         return fg, bg
+
+    def windows(self, xcount, ycount):
+        """Returns a list of ``count`` symetrically created windows.
+        """
+        wwidth = self.width // xcount
+        wheight = self.height // ycount
+        assert wwidth > 6 and wheight > 6
+        rows = []
+        for y in range(ycount):
+            cols = []
+            for x in range(xcount):
+                w = Window(self, x * wwidth, y * wheight, wwidth - 1, wheight - 1)
+                cols.append(w)
+            rows.append(cols)
+        return rows
 
     @property
     def left(self):

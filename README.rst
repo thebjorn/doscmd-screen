@@ -31,13 +31,13 @@ Usage
 
 Straight forward positioning and terminal colors in the terminal::
 
-    import screen
+    import screen  # screen probably needs to be your first import.
     scr = Screen()
     scr.centerxy(scr.center, scr.middle, '((.))')
 
     scr.writexy(scr.left, scr.bottom, 
                 'left bottom', 
-		color='black', on='red')
+		        color='black', on='red')
 
 Works for both Windows..
 

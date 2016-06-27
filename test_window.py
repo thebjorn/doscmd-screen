@@ -7,7 +7,7 @@ from screen import Screen, Window
 def main():
     s = Screen(fg='white', bg='black')
     s.cls('green')
-    w = Window(s, 5, 5, 25, 10)
+    w = Window(s, 5, 5, 45, 30)
     w.cls()
 
     # for i in range(10):
