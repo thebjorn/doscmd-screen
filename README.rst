@@ -1,6 +1,7 @@
 
 doscmd-screen
-==============================================================================
+=============
+
  -- Screen positioning and colors in the dos shell (and unix too)
 
 .. image:: https://readthedocs.org/projects/doscmd-screen/badge/?version=latest
@@ -13,7 +14,11 @@ Installation
 
    pip install doscmd-screen
 
-Changes in version 1.0 include support for non-dos platforms, a visual 
+Changes
+-------
+Version 1.0.3 introduces thread safe window areas through the Window class.
+
+Changes in version 1.0 include support for non-dos platforms, a visual
 test script, and zero-based indexing of screen positions. Since the last
 one is a backwards incompatible change I have upped the major version 
 number. I don't forsee any further backwards incompatible changes in 

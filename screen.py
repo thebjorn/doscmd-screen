@@ -187,6 +187,8 @@ class Window(object):
         self.ypos += 1
 
     def writexy(self, x, y, txt):
+        """Write to position x, y relative to the window.
+        """
         with screen_lock:
             self.screen.writexy(
                 self.x + x,
@@ -195,6 +197,9 @@ class Window(object):
             )
 
     def write(self, *args):
+        """Write to current position in the window, scrolling
+           the contents as needed.
+        """
         txt = ' '.join(str(arg) for arg in args)
         if txt == '\n':
             self.newline()
