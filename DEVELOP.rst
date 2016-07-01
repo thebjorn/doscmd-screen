@@ -29,10 +29,6 @@ Building documentation
 
 Uploading to PyPI
 -----------------
-.. note:: `twine` can also be used (although it still (2014/12) has some
-          rough edges on Windows: https://github.com/pypa/twine/issues?q=is%3Aissue+is%3Aopen+windows
-          by the time you're reading this those problems have probably been
-	  fixed..)
 
 - only source distribution::
 
