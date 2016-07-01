@@ -10,6 +10,8 @@
 import sys
 import struct
 import pprint
+import threading
+
 import colorama
 colorama.init()
 
@@ -132,11 +134,15 @@ class ScreenInfo(object):
         self.maxy = vals[10]
             
 
+screen_lock = threading.Lock()
+
+
 class Window(object):
     """A window that will scroll text written to it.
+       The screen object is thread safe when used through Window objects.
     """
     def __init__(self, screen, x, y, width, height):
-        self.dbg = []
+        # self.dbg = []
 
         self.screen = screen
         self.x = x
@@ -150,24 +156,26 @@ class Window(object):
         t = self.__dict__.copy()
         del t['content']
         del t['screen']
-        del t['dbg']
+        # del t['dbg']
         return "screen.Window(%r)" % t
 
     def _paint_content(self):
         self.cls()
-        self.screen.writelinesxy(
-            self.x, self.y, '\n'.join(self.content)
-        )
+        with screen_lock:
+            self.screen.writelinesxy(
+                self.x, self.y, '\n'.join(self.content)
+            )
 
-    def _scroll_up(self, n=1):
-        self.dbg.append("Scroll-UP[%d]" % n)
-        self.content = self.content[1:] + ['']
+    def _scroll_up(self, n=None):
+        if n is None:
+            n = self.height // 2
+        self.content = self.content[n:] + [''] * n
         self._paint_content()
-        self.ypos -= 1
+        self.ypos -= n
 
     def _write(self, txt):
         if self.ypos >= self.height:
-            self._scroll_up(self.ypos - self.height + 1)
+            self._scroll_up()
 
         self.content[self.ypos] = self.content[self.ypos][:self.xpos] + txt
 
@@ -179,11 +187,12 @@ class Window(object):
         self.ypos += 1
 
     def writexy(self, x, y, txt):
-        self.screen.writexy(
-            self.x + x,
-            self.y + y,
-            txt
-        )
+        with screen_lock:
+            self.screen.writexy(
+                self.x + x,
+                self.y + y,
+                txt
+            )
 
     def write(self, *args):
         txt = ' '.join(str(arg) for arg in args)
@@ -207,11 +216,13 @@ class Window(object):
                     self.newline()
 
     def cls(self, color=None):
-        "Clear window, fill it with the given color."
+        """Clear window, fill it with the given color.
+        """
         args = {}
         if color:
             args['background'] = color
-        self.screen.fill(self.x, self.y, self.width, self.height, char=' ', **args)
+        with screen_lock:
+            self.screen.fill(self.x, self.y, self.width, self.height, char=' ', **args)
 
 
 class Screen(object):
@@ -259,6 +270,7 @@ class Screen(object):
         """Grab color synonyms from `kw`.
         """
         kwkeys = set(kw.keys())
+
         def getcolor(which, synonyms):
             key = synonyms & kwkeys
             if key:
@@ -445,7 +457,8 @@ class Screen(object):
         self.ypos = y
 
     def cls(self, color=None):
-        "Clear screen, fill it with the given color."
+        """Clear screen, fill it with the given color.
+        """
         args = {}
         if color:
             args['background'] = color
