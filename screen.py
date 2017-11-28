@@ -6,14 +6,19 @@
 # pylint:disable=R0201,R0902
 # R0201: method could be a function
 # R0902: too many instance attributes
-
+from __future__ import print_function
 import sys
+import os
 import struct
 import pprint
 import threading
 
-import colorama
-colorama.init()
+try:
+    import colorama
+    colorama.init()
+    USE_ANSI = True
+except ImportError:
+    USE_ANSI = os.environ.get("ConEmuANSI") == "ON" or sys.platform != 'win32'
 
 
 class ScreenInfo(object):
@@ -22,6 +27,7 @@ class ScreenInfo(object):
        and tries various methods of getting the screen dimension on
        non-windows platforms.
     """
+
     def __init__(self, **kw):
         self.width = kw.get('width', 0)
         self.height = kw.get('height', 0)
@@ -40,16 +46,16 @@ class ScreenInfo(object):
             self.__set_from_screen_info_win32()
         else:
             self.__set_screen_info_nix()
-            
+
     def __get_screen_size_nix(self):
         """Try various methods of getting the screen size on *nixen.
            From: http://stackoverflow.com/a/566752/75103
         """
-        import os
         env = os.environ
+
         def ioctl_GWINSZ(fd):
             try:
-                import fcntl, termios, struct, os
+                import fcntl, termios
                 cr = struct.unpack(
                     'hh',
                     fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234')
@@ -57,6 +63,7 @@ class ScreenInfo(object):
             except:
                 return
             return cr
+
         cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
         if not cr:
             try:
@@ -73,7 +80,7 @@ class ScreenInfo(object):
         cols, lines = self.__get_screen_size_nix()
         self.width = cols - 1
         self.height = lines - 1
-        self.right = self.maxx = self.width 
+        self.right = self.maxx = self.width
         self.bottom = self.maxy = self.height
 
     def __set_from_screen_info_win32(self):
@@ -87,7 +94,7 @@ class ScreenInfo(object):
               // coordinates of the upper-left and lower-right corners of the
               // display window.
               SMALL_RECT srWindow;
-              
+
               // A COORD structure that contains the maximum size of the console
               // window, in character columns and rows, given the current screen
               // buffer size and font and the screen size.
@@ -108,14 +115,14 @@ class ScreenInfo(object):
 
         """
         from ctypes import windll, create_string_buffer
-        
+
         # Disable line wrapping at bottom of terminal. Having it on means that
         # anything written to the bottom-most/right-most spot causes the
         # terminal to wrap -- that is most likely not what you want when
         # doing absolute cursor positioning.
         h = windll.kernel32.GetStdHandle(-11)
         windll.kernel32.SetConsoleMode(h, 1)
-        
+
         h = windll.kernel32.GetStdHandle(-12)
         csbi = create_string_buffer(22)
         res = windll.kernel32.GetConsoleScreenBufferInfo(h, csbi)
@@ -132,7 +139,7 @@ class ScreenInfo(object):
         self.bottom = vals[8]
         self.maxx = vals[9]
         self.maxy = vals[10]
-            
+
 
 screen_lock = threading.Lock()
 
@@ -234,8 +241,10 @@ class Screen(object):
     """Screen provides a interface for positioned writing, with color,
        to the screen.
     """
-    colors = "black red green yellow blue magenta cyan white".split()
-    
+    colors = ('black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white')
+    _foreground = {cname: i + 30 for i, cname in enumerate(colors)}
+    _background = {cname: i + 40 for i, cname in enumerate(colors)}
+
     def __init__(self, screeninfo=None, **kw):
         """Default foreground and background colors can be specified as e.g.::
 
@@ -252,7 +261,7 @@ class Screen(object):
            e.g.::
 
                scr = Screen(color='red', on='black')
-        
+
         """
         s = screeninfo or ScreenInfo()
         self.buffer_width = s.width
@@ -268,25 +277,63 @@ class Screen(object):
 
         self.xpos = self.buffer_x - self.buffer_left + 1
         self.ypos = self.buffer_y - self.buffer_top + 1
-        self.Fore = self.Back = ''
-        self.Fore, self.Back = self._get_colors(kw)
+        self.fg = self.bg = ''
+        self.fg, self.bg = self._get_colors(kw)
+
+    # backwards compatibility setters/getters
+    @property
+    def Fore(self):
+        return self.fg
+
+    @Fore.setter
+    def Fore(self, val):
+        self.fg = val
+
+    @property
+    def Back(self):
+        return self.bg
+
+    @Back.setter
+    def Back(self, val):
+        self.bg = val
+
+    def format(self, *args, **kwargs):
+        """Similar to the print-function, but returns the resulting string
+           instead of printing it.
+        """
+        sep = kwargs.get('sep', ' ')
+        end = kwargs.get('end', '')
+        # file = kwargs.get('file', sys.stdout)
+        txt = sep.join(str(a) for a in args)
+        return txt + end
+
+    def color(self, *args, **kw):
+        """Return a colored version of `s`, ready for printing.
+        """
+        txt = self.format(*args, **kw)
+        if not USE_ANSI:
+            return txt
+        colors = self._get_colors(kw)
+        setcolor = '\x1b[%sm' % ';'.join([str(c) for c in colors if c])
+        clearcolor = '\x1b[0m'
+        return setcolor + str(txt) + clearcolor
 
     def _get_colors(self, kw):
         """Grab color synonyms from `kw`.
         """
         kwkeys = set(kw.keys())
 
-        def getcolor(which, synonyms):
+        def getcolor(which, synonyms, default=''):
             key = synonyms & kwkeys
             if key:
-                fore_or_back = getattr(colorama, which)
-                return getattr(fore_or_back,
-                               kw[key.pop()].upper(),
-                               getattr(self, which))
-            return getattr(self, which)
+                return which.get(
+                    kw.pop(key.pop()).lower(),
+                    default
+                )
+            return default
 
-        fg = getcolor('Fore', {'foreground', 'color', 'fg'})
-        bg = getcolor('Back', {'background', 'on', 'bg'})
+        fg = getcolor(self._foreground, {'foreground', 'color', 'fg'}, self.fg)
+        bg = getcolor(self._background, {'background', 'on', 'bg'}, self.bg)
         return fg, bg
 
     def windows(self, xcount, ycount):
@@ -375,6 +422,8 @@ class Screen(object):
 
     def _xy(self, x, y):
         "Position the cursor at x, y (where x, y are zero-based coordinates)."
+        if not USE_ANSI:
+            return ""
         return '\033[%d;%dH' % (y + 1, x + 1)
 
     def gotoxy(self, x, y):
@@ -388,10 +437,15 @@ class Screen(object):
         """If the string resulting from prosessing `args` contains newlines,
            then write the next line at x, y+1, etc.
         """
-        txt = ' '.join(str(a) for a in args)
+        txt = self.format(*args, **kw)
         lines = txt.split('\n')
         for i, line in enumerate(lines):
             self.writexy(x, y + i, line, **kw)
+
+    def print(self, *args, **kwargs):
+        """Write output without cursor positioning.
+        """
+        print(self.color(*args, **kwargs), end=kwargs.get('end', '\n'))
 
     def write(self, *args, **kw):
         """Write args at current location, see writexy function for keyword
@@ -417,14 +471,8 @@ class Screen(object):
            colors by e.g. changing values in the registry:
            https://github.com/neilpa/cmd-colors-solarized)
         """
-        txt = ' '.join(str(a) for a in args)
-        fg, bg = self._get_colors(kw)
-        cmd = self._xy(x, y)
-        cmd += fg
-        cmd += bg
-        cmd += txt
-        cmd += colorama.Style.RESET_ALL  # pylint:disable=E1101
-        sys.stdout.write(cmd)
+        txt = self.format(*args, **kw)
+        sys.stdout.write(self._xy(x, y) + self.color(txt, **kw))
         self.ypos = y
         self.xpos = x + len(txt)
 
