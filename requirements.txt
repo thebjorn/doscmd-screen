@@ -1,0 +1,4 @@
+# these are requirements for developing an publishing doscmd-screen
+# intall requirements are listed in setup.py
+
+dk-tasklib
