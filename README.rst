@@ -47,12 +47,10 @@ Straight forward positioning and terminal colors in the terminal::
 Works for both Windows..
 
 .. image:: docs/_static/screenshot-dos.png
-..
-   https://dl.dropboxusercontent.com/u/94882440/screenshot-dos.png
 
 ..and unix-like terminals:
 
-.. image:: https://dl.dropboxusercontent.com/u/94882440/screenshot-linux.png
+.. image:: docs/_static/screenshot-linux.png
 
 
 
