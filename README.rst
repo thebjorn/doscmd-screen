@@ -16,6 +16,9 @@ Installation
 
 Changes
 -------
+Version 1.1.0 introduces Screen.color("txt", fg='white', bg='blue') which
+returns a string that can later be printed.
+
 Version 1.0.3 introduces thread safe window areas through the Window class.
 
 Changes in version 1.0 include support for non-dos platforms, a visual

@@ -2,3 +2,4 @@
 # intall requirements are listed in setup.py
 
 dk-tasklib
+colorama
