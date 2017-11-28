@@ -46,11 +46,9 @@ Straight forward positioning and terminal colors in the terminal::
 
 Works for both Windows..
 
-.. image:: docs/_static/screenshot-dos.png
+.. image:: https://raw.githubusercontent.com/thebjorn/doscmd-screen/master/docs/_static/screenshot-dos.png
 
 ..and unix-like terminals:
 
-.. image:: docs/_static/screenshot-linux.png
-
-
+.. image:: https://raw.githubusercontent.com/thebjorn/doscmd-screen/master/docs/_static/screenshot-linux.png
 
