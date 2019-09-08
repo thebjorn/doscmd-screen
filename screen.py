@@ -12,6 +12,7 @@ import os
 import struct
 import pprint
 import threading
+from collections import namedtuple
 from contextlib import contextmanager
 
 try:
