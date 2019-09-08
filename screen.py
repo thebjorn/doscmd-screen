@@ -503,12 +503,25 @@ class Screen(object):
         """
         self.gotoxy(pos.x, pos.y)
 
+    def cursor_left(self, n=1):
+        sys.stdout.write('\b')
+        #sys.stdout.write('\033{n}D'.format(n=n))
+
+    def cursor_right(self, n=1):
+        sys.stdout.write('\x1b{n}C'.format(n=n))
+
+    def cursor_up(self, n=1):
+        sys.stdout.write('\x1b{n}A'.format(n=n))
+
+    def cursor_down(self, n=1):
+        sys.stdout.write('\x1b{n}B'.format(n=n))
+
     def save_cursor_position(self):
         """Saves the current cursor position. You can move the cursor to the 
            saved cursor position by using the Restore Cursor Position
            sequence. 
         """
-        self._cursor_stack.append(self.pos())
+        # self._cursor_stack.append(self.pos())
         sys.stdout.write('\x1b[s')
 
     def restore_cursor_position(self):
@@ -516,7 +529,7 @@ class Screen(object):
            Save Cursor Position sequence. 
         """
         sys.stdout.write('\x1b[u')
-        self.x, self.y = self._cursor_stack.pop()
+        # self.xpos, self.ypos = self._cursor_stack.pop()
 
     def writelinesxy(self, x, y, *args, **kw):
         """If the string resulting from prosessing `args` contains newlines,

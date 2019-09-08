@@ -25,7 +25,7 @@ doclines = __doc__.split('\n')
 
 setup(
     name='dosbox-screen',
-    version='1.1.4',
+    version='1.1.5',
     requires=['colorama'],
     install_requires=['colorama'],
     description=doclines[0],
