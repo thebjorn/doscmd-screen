@@ -483,7 +483,7 @@ class Screen(object):
     def pos(self):
         """Get the current cursor position.
         """
-        return Position(self.x, self.y)
+        return Position(self.xpos, self.ypos)
 
     def _xy(self, x, y):
         "Position the cursor at x, y (where x, y are zero-based coordinates)."
