@@ -12,6 +12,7 @@ import os
 import struct
 import pprint
 import threading
+from contextlib import contextmanager
 
 try:
     import colorama
@@ -19,6 +20,65 @@ try:
     USE_ANSI = True
 except ImportError:
     USE_ANSI = os.environ.get("ConEmuANSI") == "ON" or sys.platform != 'win32'
+
+
+Position = namedtuple('Position', ['x', 'y'])
+
+
+if os.name == 'nt':
+    from ctypes import (
+        windll, create_string_buffer, byref, Structure, c_int, c_byte, byref
+    )
+
+    class _CursorInfo(Structure):
+        _fields_ = [("size", c_int),
+                    ("visible", c_byte)]
+
+
+class _Cursor(object):
+    # from http://stackoverflow.com/q/5174810
+
+    def hide(self):
+        """Hide the cursor.
+        """
+        if sys.platform == 'win32':
+            ci = _CursorInfo()
+            h = windll.kernel32.GetStdHandle(-11)
+            windll.kernel32.GetConsoleCursorInfo(h, byref(ci))
+            ci.visible = False
+            windll.kernel32.SetConsoleCursorInfo(h, byref(ci))
+        else:
+            sys.stdout.write("\x1b[?25l")
+            sys.stdout.flush()
+
+    def show(self):
+        """Show the cursor.
+        """
+        if sys.platform == 'win32':
+            ci = _CursorInfo()
+            h = windll.kernel32.GetStdHandle(-11)
+            windll.kernel32.GetConsoleCursorInfo(h, byref(ci))
+            ci.visible = True
+            windll.kernel32.SetConsoleCursorInfo(h, byref(ci))
+        else:
+            sys.stdout.write("\x1b[?25h")
+            sys.stdout.flush()
+
+    @contextmanager
+    def hidden(self):
+        """Usage::
+
+               import screen
+               with screen.cursor.hidden():
+                   .. # cursor is hidden 
+
+        """
+        self.hide()
+        yield
+        self.show()
+
+
+cursor = _Cursor()
 
 
 class ScreenInfo(object):
@@ -114,8 +174,6 @@ class ScreenInfo(object):
            } SMALL_RECT;
 
         """
-        from ctypes import windll, create_string_buffer
-
         # Disable line wrapping at bottom of terminal. Having it on means that
         # anything written to the bottom-most/right-most spot causes the
         # terminal to wrap -- that is most likely not what you want when
@@ -279,6 +337,7 @@ class Screen(object):
         self.ypos = self.buffer_y - self.buffer_top + 1
         self.fg = self.bg = ''
         self.fg, self.bg = self._get_colors(kw)
+        self._cursor_stack = []
 
     # backwards compatibility setters/getters
     @property
@@ -420,11 +479,16 @@ class Screen(object):
         tmp.update(self.__dict__)
         return pprint.pformat(tmp, width=35)
 
+    def pos(self):
+        """Get the current cursor position.
+        """
+        return Position(self.x, self.y)
+
     def _xy(self, x, y):
         "Position the cursor at x, y (where x, y are zero-based coordinates)."
         if not USE_ANSI:
             return ""
-        return '\033[%d;%dH' % (y + 1, x + 1)
+        return '\x1b[%d;%dH' % (y + 1, x + 1)
 
     def gotoxy(self, x, y):
         """Put cursor at coordinates ``x``, ``y``.
@@ -432,6 +496,26 @@ class Screen(object):
         sys.stdout.write(self._xy(x, y) + '')
         self.ypos = y
         self.xpos = x
+
+    def goto(self, pos):
+        """Put cursor at position ``pos``.
+        """
+        self.gotoxy(pos.x, pos.y)
+
+    def save_cursor_position(self):
+        """Saves the current cursor position. You can move the cursor to the 
+           saved cursor position by using the Restore Cursor Position
+           sequence. 
+        """
+        self._cursor_stack.append(self.pos())
+        sys.stdout.write('\x1b[s')
+
+    def restore_cursor_position(self):
+        """Returns the cursor to the position stored by the 
+           Save Cursor Position sequence. 
+        """
+        sys.stdout.write('\x1b[u')
+        self.x, self.y = self._cursor_stack.pop()
 
     def writelinesxy(self, x, y, *args, **kw):
         """If the string resulting from prosessing `args` contains newlines,
@@ -509,10 +593,57 @@ class Screen(object):
         self.xpos = x
         self.ypos = y
 
+    def erase_line(self):
+        """Clears all characters from the current
+           line (including the character at the cursor position). 
+           Keep cursor stationary.
+        """
+        sys.stdout.write('\x1b[2K')
+
+    def erase_line_left(self):
+        """Clears all characters from the cursor position to the start of the
+           line (including the character at the cursor position).
+           Keep cursor stationary. 
+        """
+        sys.stdout.write('\x1b[1K')
+
+    def erase_line_right(self):
+        """Clears all characters from the cursor position to the end of the
+           line (including the character at the cursor position). 
+           Keep cursor stationary.
+        """
+        sys.stdout.write('\x1b[0K')
+
+    def scroll_window_up(self):
+        sys.stdout.write('\x1bD')
+
+    def scroll_window_down(self):
+        sys.stdout.write('\x1bM')
+
+    def erase_display_down(self):
+        """Clears the screen from cursor down. 
+        """
+        sys.stdout.write('\x1b[0J')
+
+    def erase_display_up(self):
+        """Clears the screen from cursor up. 
+        """
+        sys.stdout.write('\x1b[1J')
+        self.xpos = self.ypos = 0        
+
+    def erase_display(self):
+        """Clears the screen and moves the cursor to the home position 
+           (line 0, column 0). 
+        """
+        sys.stdout.write('\x1b[2J')
+        self.xpos = self.ypos = 0
+
     def cls(self, color=None):
         """Clear screen, fill it with the given color.
         """
         args = {}
         if color:
             args['background'] = color
-        self.fill(0, 0, self.width, self.height, char=' ', **args)
+            self.fill(0, 0, self.width, self.height, char=' ', **args)
+        else:
+            self.erase_display()
